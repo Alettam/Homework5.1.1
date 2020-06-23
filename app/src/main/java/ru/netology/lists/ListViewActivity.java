@@ -1,13 +1,9 @@
 package ru.netology.lists;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
@@ -17,7 +13,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -28,8 +23,6 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class ListViewActivity extends AppCompatActivity {
 
@@ -65,52 +58,35 @@ public class ListViewActivity extends AppCompatActivity {
     }
 
     private void saveFile(List<Map<String,String>> values, File file){
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(file));
+        try (FileWriter fileWriter = new FileWriter(file);
+                BufferedWriter writer = new BufferedWriter(fileWriter)) {
             for (Map<String,String> map : values){
                 String text = map.get(KEY_TITLE);
                 String count = map.get(KEY_COUNT);
                 writer.write(text + ";" + count);
                 writer.write("\n\n");
             }
-        }catch (IOException e){
+        } catch (IOException e){
             e.printStackTrace();
-        }finally {
-            if(writer!=null){
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
     }
 
     private List<Map<String,String>> loadFromFile(File file){
-        BufferedReader reader = null;
         StringBuilder sb = new StringBuilder();
-        try {
-            reader = new BufferedReader(new FileReader(file));
+
+        try (FileReader fileReader = new FileReader(file);
+             BufferedReader reader = new BufferedReader(fileReader)) {
             int symbol;
-            while ((symbol=reader.read())!= -1) {
-                sb.append((char)symbol);
+            while ((symbol = reader.read()) != -1) {
+                sb.append((char) symbol);
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if(reader!=null){
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
         String fullFile = sb.toString();
         String[] lines = fullFile.split("\n\n");
-        for(String line:lines) {
+        for (String line : lines) {
             String[] title = line.split(";");
             if (title.length != 2) {
                 return result;
@@ -126,15 +102,6 @@ public class ListViewActivity extends AppCompatActivity {
 
     private void initViews() {
         list = findViewById(R.id.listView);
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                values.remove(position);
-                saveFile(values,getValuesFile());
-                listContentAdapter.notifyDataSetChanged();
-            }
-
-        });
         addBtn = findViewById(R.id.fab);
         addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -147,11 +114,30 @@ public class ListViewActivity extends AppCompatActivity {
         });
     }
 
+    private View.OnClickListener removeClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int position = (int) v.getTag();
+            values.remove(position);
+            saveFile(values, getValuesFile());
+            listContentAdapter.notifyDataSetChanged();
+        }
+    };
 
     @NonNull
     private BaseAdapter createAdapter(List<Map<String,String>> values) {
         return new SimpleAdapter(this,values,R.layout.item_list, new String[]{KEY_TITLE,KEY_COUNT},
-                new int[]{R.id.textView,R.id.symbCountTv});
+                new int[]{R.id.textView,R.id.symbCountTv}) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View root = super.getView(position, convertView, parent);
+                View removeButton = root.findViewById(R.id.imageView);
+                removeButton.setTag(position);
+                removeButton.setOnClickListener(removeClickListener);
+                return root;
+            }
+        };
+
     }
 
     @NonNull
@@ -177,5 +163,6 @@ public class ListViewActivity extends AppCompatActivity {
             result.add(map);
         }
     }
+
 }
 
