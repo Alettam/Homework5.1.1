@@ -58,8 +58,7 @@ public class ListViewActivity extends AppCompatActivity {
     }
 
     private void saveFile(List<Map<String,String>> values, File file){
-        try (FileWriter fileWriter = new FileWriter(file);
-                BufferedWriter writer = new BufferedWriter(fileWriter)) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (Map<String,String> map : values){
                 String text = map.get(KEY_TITLE);
                 String count = map.get(KEY_COUNT);
@@ -75,8 +74,7 @@ public class ListViewActivity extends AppCompatActivity {
     private List<Map<String,String>> loadFromFile(File file){
         StringBuilder sb = new StringBuilder();
 
-        try (FileReader fileReader = new FileReader(file);
-             BufferedReader reader = new BufferedReader(fileReader)) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             int symbol;
             while ((symbol = reader.read()) != -1) {
                 sb.append((char) symbol);
